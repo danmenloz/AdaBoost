@@ -1,8 +1,9 @@
-from pathlib import Path
-from PIL import Image
 import csv
 import random
 import shutil
+import numpy as np
+from pathlib import Path
+from PIL import Image
 from random import randrange
 from tqdm import tqdm
 
@@ -154,3 +155,19 @@ def create_datasets(train_size, val_size, test_size, resolution, verbose=1):
         print('\nDatasets created sucessfully!\n')
 
     return training_set, validation_set, test_set
+
+
+
+def read_dataset(dataset):
+    # dataset is a list of dictionaries: dataset = [{face: image: 1: 0:},...]
+    # return list of positive and negative images
+
+    pos_imgs = list()
+    neg_imgs = list()
+
+    for actor in dataset:
+        pos_imgs.append( np.array(Image.open(actor['1']), dtype=np.float64) )
+        neg_imgs.append( np.array(Image.open(actor['0']), dtype=np.float64) )
+    
+    return pos_imgs, neg_imgs
+

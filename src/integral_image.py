@@ -19,8 +19,8 @@ class IntegralImage(object):
         self.memo = np.zeros(self.shape)
         self.get()
 
-    def get_integral_image(self):
-        return self.int_img
+    # def get_integral_image(self):
+    #     return self.int_img
 
     def calc(self, x, y, sq=False):
         # Calculate value of each pixel
