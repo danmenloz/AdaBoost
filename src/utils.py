@@ -2,12 +2,14 @@ from pathlib import Path
 from PIL import Image
 import csv
 import random
+import shutil
 from random import randrange
 from tqdm import tqdm
 
 
 path_actors_faces = './actors/faces/'
 path_actors_images = './actors/images/'
+path_faces_file = './actors/faces.txt'
 
 
 
@@ -75,21 +77,35 @@ def create_datasets(train_size, val_size, test_size, resolution, verbose=1):
 
     faces = [] # this list contains all the download information
 
-    for actor_entry in tqdm(Path(path_actors_faces).iterdir(), desc ="Reading faces"):
-        if actor_entry.is_dir(): # read only directories
-            for face_entry in actor_entry.iterdir():
-                faces.append( {'name':actor_entry.name, 'face':str(face_entry)} ) # add info to faces list
+    # check if faces.txt file exists
+    if Path(path_faces_file).is_file():
+        with open(path_faces_file, newline='') as faces_file:
+            faces_reader = csv.DictReader(faces_file, delimiter='\t')
+            for face in faces_reader:
+                faces.append(face)
+    else:
+        # it takes some minutes to scan the whole directory!
+        for actor_entry in tqdm(Path(path_actors_faces).iterdir(), desc ="Reading faces"):
+            if actor_entry.is_dir(): # read only directories
+                for face_entry in actor_entry.iterdir():
+                    faces.append( {'name':actor_entry.name, 'face':str(face_entry)} ) # add info to faces list
 
-    for actor_entry in tqdm(Path(path_actors_images).iterdir(), desc ="Reading images"):
-        if actor_entry.is_dir(): # read only directories
-            for image_entry in actor_entry.iterdir():
-                # Search for dictionary and add key
-                for face in faces:
-                    if face['face'].find(image_entry.stem)>=0: # stem -> name without sufix
-                        face['image'] = str(image_entry)
+        for actor_entry in tqdm(Path(path_actors_images).iterdir(), desc ="Reading images"):
+            if actor_entry.is_dir(): # read only directories
+                for image_entry in actor_entry.iterdir():
+                    # Search for dictionary and add key
+                    for face in faces:
+                        if face['face'].find(image_entry.stem)>=0: # stem -> name without sufix
+                            face['image'] = str(image_entry)
+        
+        create_info_file(faces, str(Path(path_faces_file).parent), Path(path_faces_file).name) # create faces.txt file
 
     # Shuffle list
     random.shuffle(faces)
+
+    # clear data dir
+    if Path('data').is_dir():
+        shutil.rmtree('data')
 
     if verbose:
         print('\nCreating test set...')
