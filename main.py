@@ -1,8 +1,9 @@
 import src.utils as utils
 import src.integral_image as integral
+import src.adaboost as ab
 
 # Training and test dataset sizes
-train_size = 10
+train_size = 1000
 val_size = 5
 test_size = 5
 
@@ -34,4 +35,13 @@ if __name__ == "__main__":
     pos_valid_int_imgs = [ integral.IntegralImage(img).int_img for img in pos_valid_imgs ]
     neg_valid_int_imgs = [ integral.IntegralImage(img).int_img for img in neg_valid_imgs ]
 
-    
+    # parameters (do not change)
+    num_classifier = 10
+    min_feature_height = 4
+    max_feature_height = 10
+    min_feature_width = 4
+    max_feature_width = 10
+
+    print("\nAdaBoost begins ...")
+    classifiers = ab.learn(pos_train_int_imgs, neg_train_int_imgs, num_classifier, 
+        min_feature_width, max_feature_width, min_feature_height, max_feature_height, verbose=True)
