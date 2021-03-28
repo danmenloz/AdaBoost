@@ -2,6 +2,7 @@ from src.integral_image import IntegralImage as integral
 from src.integral_image import get_sum
 from enum import Enum
 from PIL import Image, ImageDraw
+from numpy import inf
 
 
 class featureType(Enum):
@@ -20,22 +21,21 @@ class HaarLikeFeature(object):
     # h_j(x) = 1 if p_j*f_j(x) < p_j*threshold
     # h_j(x) = 0 otherwise
 
-    def __init__(self, feature_type, position, width, height, threshold, parity, weight=1):
+    def __init__(self, feature_type, position, width, height):
         '''
         : para feature_type: 5 enumerate types in total
         : para position: position of sub-window (top-left)
         : para width, height: size of the image
-        : para threshold: min number of misclassified examples
-        : para parity: indicating the direction of the inequality (+1 or -1)
         '''
         self.type = feature_type
         self.top_left = position
         self.bottom_right = (position[0]+width, position[1]+height)
         self.width = width
         self.height = height
-        self.threshold = threshold
-        self.parity = parity
-        self.weight = weight # alpha value used as weight in the strong classifier
+        self.error = inf # min observed error during training
+        self.threshold = 0 # threshold = 0 (no misclassified images)
+        self.polarity = 1
+        self.weight = 1 # alpha value used as weight in the strong classifier
 
     def calc_score(self, int_img):
         score, white, grey = 0, 0, 0
