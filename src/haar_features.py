@@ -1,6 +1,7 @@
 from src.integral_image import IntegralImage as integral
 from src.integral_image import get_sum
 from enum import Enum
+from PIL import Image, ImageDraw
 
 
 class featureType(Enum):
@@ -34,7 +35,7 @@ class HaarLikeFeature(object):
         self.height = height
         self.threshold = threshold
         self.parity = parity
-        self.weight = weight
+        self.weight = weight # alpha value used as weight in the strong classifier
 
     def calc_score(self, int_img):
         score, white, grey = 0, 0, 0
@@ -85,3 +86,72 @@ class HaarLikeFeature(object):
         # note h_j(x) = 0 otherwise
         score = self.calc_score(int_img)
         return self.weight * (1 if score < self.parity * self.threshold else 0)
+    
+    def draw_feature(self, img=None, res=None):
+        # Draw the feature on a given image or on an empty square
+        # img:          PIL image
+        # resolution:   (width, height) tuple
+        if img is None:
+            img = Image.new("RGB", res)
+        else:
+            img = img.convert('RGB')
+        
+        imgr = ImageDraw.Draw( img )
+        neg, pos = 'red', 'green' # fill colors
+
+        if self.type == featureType.TWO_VERTICAL:
+            imgr.rectangle( [ self.top_left, 
+                (int(self.top_left[0] + self.width), int(self.top_left[1] + self.height / 2)) ],
+                fill = pos )
+            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + self.height / 2)), 
+                self.bottom_right],
+                fill = neg )
+
+        elif self.type == featureType.TWO_HORIZONTAL:
+            imgr.rectangle( [ self.top_left,
+                (int(self.top_left[0] + self.width/2), self.top_left[1] + self.height) ],
+                fill = pos )
+            imgr.rectangle( [ (int(self.top_left[0] + self.width/2), self.top_left[1]), 
+                self.bottom_right],
+                fill = neg )
+            
+        elif self.type == featureType.THREE_VERTICAL:
+            imgr.rectangle( [ self.top_left,
+                (self.bottom_right[0], int(self.top_left[1] + self.height / 3)) ],
+                fill = pos )
+            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + self.height / 3)), 
+                (self.bottom_right[0], int(self.top_left[1] + 2 * self.height / 3)) ],
+                fill = neg )
+            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + 2 * self.height / 3)), 
+                self.bottom_right ],
+                fill = pos )
+
+        elif self.type == featureType.THREE_HORIZONTAL:
+            imgr.rectangle( [ self.top_left,
+                (self.bottom_right[0], int(self.top_left[1] + self.height / 3)) ],
+                fill = pos )
+            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + self.height / 3)),
+                (self.bottom_right[0], int(self.top_left[1] + 2 * self.height / 3)) ],
+                fill = neg )
+            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + 2 * self.height / 3)), 
+                self.bottom_right ],
+                fill = pos )
+
+        elif self.type == featureType.FOUR:
+            imgr.rectangle( [ self.top_left,
+                (int(self.top_left[0] + self.width / 2), int(self.top_left[1] + self.height / 2)) ],
+                fill = pos )
+            imgr.rectangle( [ (int(self.top_left[0] + self.width / 2), self.top_left[1]),
+                (self.bottom_right[0], int(self.top_left[1] + self.height / 2)) ],
+                fill = neg )
+            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + self.height / 2)),
+                (int(self.top_left[0] + self.width / 2), self.bottom_right[1]) ],
+                fill = neg )
+            imgr.rectangle( [ (int(self.top_left[0] + self.width / 2),
+                int(self.top_left[1] + self.height / 2)), self.bottom_right ],
+                fill = pos )
+        
+        return img
+        
+
+    

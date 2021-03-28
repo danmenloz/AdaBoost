@@ -1,6 +1,7 @@
 import src.utils as utils
 import src.integral_image as integral
 import src.adaboost as ab
+import src.haar_features as haar
 
 # Training and test dataset sizes
 train_size = 1000
@@ -42,6 +43,16 @@ if __name__ == "__main__":
     min_feature_width = 4
     max_feature_width = 10
 
+    # Create features
+    img_height, img_width = pos_train_int_imgs[0].shape
+    features = ab._create_features(img_width, img_height, min_feature_width, max_feature_width, min_feature_height, max_feature_height)
+    print('Total features: %d' % len(features))
+
     print("\nAdaBoost begins ...")
     classifiers = ab.learn(pos_train_int_imgs, neg_train_int_imgs, num_classifier, 
         min_feature_width, max_feature_width, min_feature_height, max_feature_height, verbose=True)
+
+    # generate and save image of classsifiers
+    for i, feature in enumerate(classifiers):
+        img = feature.draw_feature(res=resolution)
+        img.save( 'images/'+str(i)+'.png', "PNG")
