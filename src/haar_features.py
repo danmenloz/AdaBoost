@@ -36,6 +36,32 @@ class HaarLikeFeature(object):
         self.threshold = 0 # threshold = 0 (no misclassified images)
         self.polarity = 1
         self.weight = 1 # alpha value used as weight in the strong classifier
+        self.score = None # list of scores on the dataset
+
+
+    # @property
+    # def error(self):
+    #     return self.__error
+
+    # @error.setter
+    # def error(self, value):
+    #     self.__error = value
+
+    # @property
+    # def threshold(self):
+    #     return self.__threshold
+    
+    # @threshold.setter
+    # def threshold(self, value):
+    #     self.__threshold = value
+        
+    # @property
+    # def polarity(self):
+    #     return self.__polarity
+    
+    # @polarity.setter
+    # def polarity(self, value):
+    #     self.__polarity = value
 
     def calc_score(self, int_img):
         score, white, grey = 0, 0, 0

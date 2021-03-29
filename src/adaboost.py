@@ -54,8 +54,37 @@ def _get_feature_score(feature, image):
     return feature.calc_score(image)
 
 
-def _update_feature(image, feature):
-    pass
+def _update_feature(feature, weights, labels):
+    # updated: list to store the updated features
+    data = np.vstack((feature.score, weights, labels)) # combine data
+    df = pd.DataFrame(data.T, columns=['score','weight','label']) # create data frame
+    df.sort_values(by=['score']) # ascending order
+
+    # Total sums
+    T_pos = df.loc[df['label'] == 1, 'weight'].sum()
+    T_neg = df.loc[df['label'] == 0, 'weight'].sum()
+
+    # find best threshold
+    for threshold in df['score'].tolist():
+        S_pos = df.loc[ (df['label'] == 1) & (df['score'] < threshold), 'weight'].sum()
+        S_neg = df.loc[ (df['label'] == 0) & (df['score'] < threshold), 'weight'].sum()
+        # find polarity
+        error_1 = S_pos + T_neg - S_neg
+        error_2 = S_neg + T_pos - S_pos
+        if error_1 < error_2:
+            min_error = error_1
+            feature.polarity = -1
+        else:
+            min_error = error_2
+            feature.polarity = 1
+        # update error and feature threshold
+        if min_error < feature.error: # initial feature.error is inf
+            feature.error = min_error
+            feature.threshold = threshold
+    # print progress dot
+    # print('.', end='')
+    return feature
+    
 
 
 def save_votes(votes):
@@ -116,10 +145,6 @@ def find_best_features(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, neg
         print("\nupdating feature error and threshold ...")
     bar = progressbar.ProgressBar() # reset progress bar
 
-    # # update error and threshold of all features (quite time-consuming)
-    # for i in bar(range(num_features)):
-    #     pool.map(partial(_update_feature, image=images[i]), features)
-
     for idx in bar(range(num_features)):
         feature = features[idx]
 
@@ -152,6 +177,69 @@ def find_best_features(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, neg
     best_n_features = sorted(features, key=lambda feature: feature.error)   # sort by error
 
     return best_n_features[:n]
+
+def find_best_features_2(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, neg_weights=-1, n=1, verbose=1):
+    # n: number of features to return
+    # return: list of festures and their indexes
+    
+    num_pos = len(pos_int_imgs)
+    num_neg = len(neg_int_imgs)
+    num_imgs = num_pos + num_neg
+    num_features = len(features)
+
+    # default weights if unspecified
+    if pos_weights == -1:
+        pos_weights = np.ones(num_pos) * 1. / (2 * num_pos) # w = 1/2m
+    if neg_weights == -1:
+        neg_weights = np.ones(num_neg) * 1. / (2 * num_neg) # w = 1/2l
+    weights = np.hstack((pos_weights, neg_weights)) # concatenated weights of images
+    labels = np.hstack((np.ones(num_pos), np.zeros(num_neg))) # concatenated labels (pos/neg)
+    images = pos_int_imgs + neg_int_imgs # concatenated image samples
+
+    if verbose:
+        print("\ncalculating integral images ...")
+
+    # 2D numpy.array, each row is a feature with all image scores
+    scores = np.zeros((num_features, num_imgs))
+
+    # visualise learning progress with text signals
+    bar = progressbar.ProgressBar()
+    # pool object to parallelize the execution of a function across multiple input values
+    NUM_PROCESS = cpu_count() * 3 # 8 on T580
+    pool = Pool(processes=NUM_PROCESS)
+
+    # get all scores for each image and each feature (quite time-consuming)
+    for i in bar(range(num_imgs)):
+        scores[:, i] = np.array(list(pool.map(partial(_get_feature_score, image=images[i]), features)))
+
+    '''
+    The partial() is used for partial function application which 'freezes' some portion of a function's arguments and/or keywords
+    resulting in a new object with a simplified signature
+    In the project, (partial(_get_feature_vote, image=images[i]), features), fixed the argument features
+    for i in range(len(features)):
+        for j in range(len(images)):
+            vote[i][j] = _get_feature_vote(features[i], images[j])
+    '''
+
+    # Update scores attribute
+    for idx, feature in enumerate(features):
+        feature.score = scores[idx,:]
+
+    # compute error for each feature (weak learner) and update their threshold and polarity
+    if verbose:
+        print("\nupdating feature error and threshold ...")
+    
+    # print('before f0.error: %f' % features[0].error)
+
+    # update error and threshold of all features (quite time-consuming)
+    pool = Pool(processes=NUM_PROCESS)
+    best_features = pool.map(partial(_update_feature, weights=weights , labels=labels), features)
+    
+    # print('\nafter f0.error: %f' % best_features[0].error)
+
+    best_features = sorted(best_features, key=lambda feature: feature.error)   # sort by error
+    # TODO: return index of best features
+    return best_features[:n]
 
 
 

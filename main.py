@@ -4,7 +4,7 @@ import src.adaboost as ab
 import src.haar_features as haar
 
 # Training and test dataset sizes
-train_size = 5
+train_size = 100
 val_size = 5
 test_size = 5
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     print('Total features: %d' % len(features))
 
     # Find the top 10 features (before boosting)
-    top10_features = ab.find_best_features(features, pos_train_int_imgs, neg_train_int_imgs, n=10)
+    top10_features = ab.find_best_features_2(features, pos_train_int_imgs, neg_train_int_imgs, n=100)
 
     # print("\nAdaBoost begins ...")
     # classifiers = ab.learn(pos_train_int_imgs, neg_train_int_imgs, num_classifier, 
@@ -59,3 +59,4 @@ if __name__ == "__main__":
     for i, feature in enumerate(top10_features):
         img = feature.draw_feature(res=resolution)
         img.save( 'images/'+str(i)+'.png', "PNG")
+        print('[%d]: %f, %f, %f\n' %(i, feature.error, feature.threshold, feature.polarity))
