@@ -7,10 +7,14 @@ from PIL import Image
 from random import randrange
 from tqdm import tqdm
 
+from src.haar_features import HaarLikeFeature as haar
+from src.haar_features import featureType
+
 
 path_actors_faces = './actors/faces/'
 path_actors_images = './actors/images/'
 path_faces_file = './actors/faces.txt'
+path_save_features = './data/'
 
 
 
@@ -171,3 +175,47 @@ def read_dataset(dataset):
     
     return pos_imgs, neg_imgs
 
+
+
+def save_features(filename, features):
+    features_list = [] # list of dictionaries to hold the features
+    for feature in features:
+        d = {
+            'type': feature.type.value,
+            'position': feature.top_left,
+            'width': feature.width,
+            'height': feature.height,
+            'error': feature.error,
+            'threshold': feature.threshold,
+            'polarity': feature.polarity,
+            'weight': feature.weight
+        }
+        features_list.append(d)
+
+    with open(path_save_features+filename, 'w', newline='') as file:
+        fieldnames = features_list[0].keys()
+        writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter='\t')
+        writer.writeheader()
+        for feature in features_list:
+            writer.writerow(feature)
+    
+
+
+def load_features(filename):
+    # Read data
+    read_features = list()
+    with open(path_save_features+filename, newline='') as features:
+        features_reader = csv.DictReader(features, delimiter='\t')
+        for feature in features_reader:
+            read_features.append(feature)
+
+    created_features = [haar(featureType(eval(f['type'])), 
+        eval(f['position']), 
+        eval(f['width']), 
+        eval(f['height']), 
+        eval(f['error']), 
+        eval(f['threshold']),
+        eval(f['polarity']),
+        eval(f['weight'])) for f in read_features]
+
+    return created_features

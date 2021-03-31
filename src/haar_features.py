@@ -21,7 +21,7 @@ class HaarLikeFeature(object):
     # h_j(x) = 1 if p_j*f_j(x) < p_j*threshold
     # h_j(x) = 0 otherwise
 
-    def __init__(self, feature_type, position, width, height):
+    def __init__(self, feature_type, position, width, height, error=inf, threshold=0, polarity=1, weight=1):
         '''
         : para feature_type: 5 enumerate types in total
         : para position: position of sub-window (top-left)
@@ -32,11 +32,11 @@ class HaarLikeFeature(object):
         self.bottom_right = (position[0]+width, position[1]+height)
         self.width = width
         self.height = height
-        self.error = inf # min observed error during training
-        self.threshold = 0 # threshold = 0 (no misclassified images)
-        self.polarity = 1
-        self.weight = 1 # alpha value used as weight in the strong classifier
-        self.score = None # list of scores on the dataset
+        self.error = error # min observed error during training
+        self.threshold = threshold # threshold = 0 (no misclassified images)
+        self.polarity = polarity
+        self.weight = weight # alpha value used as weight in the strong classifier
+        self.scores = None # list of scores on the dataset
 
 
     # @property
@@ -107,11 +107,17 @@ class HaarLikeFeature(object):
         score = white - grey
         return score
 
-    def get_vote(self, int_img):
-        # Get the vote of this feature for a given integral image (prediction)
+    def get_vote(self, img_idx):
+        # Get the vote of this feature for a given integral image index
         # note h_j(x) = 0 otherwise
-        score = self.calc_score(int_img)
-        return self.weight * (1 if score < self.parity * self.threshold else 0)
+        # score = self.calc_score(int_img) # scores have already been computed and stored in .scores attribute
+        score = self.scores[img_idx]
+        if self.polarity == 1:
+            vote = 1 if score < self.threshold else 0
+        else: # self.polarity = -1
+            vote = 1 if score > self.threshold else 0
+        return vote
+
     
     def draw_feature(self, img=None, res=None):
         # Draw the feature on a given image or on an empty square

@@ -56,7 +56,7 @@ def _get_feature_score(feature, image):
 
 def _update_feature(feature, weights, labels):
     # updated: list to store the updated features
-    data = np.vstack((feature.score, weights, labels)) # combine data
+    data = np.vstack((feature.scores, weights, labels)) # combine data
     df = pd.DataFrame(data.T, columns=['score','weight','label']) # create data frame
     df.sort_values(by=['score']) # ascending order
 
@@ -86,15 +86,15 @@ def _update_feature(feature, weights, labels):
     return feature
     
 
+def save_scores(scores):
+    np.savetxt("./data/scores.txt", scores, fmt='%f')
+    print("...scores saved\n")
 
-def save_votes(votes):
-    np.savetxt("./data/votes.txt", votes, fmt='%f')
-    print("...votes saved\n")
 
+def load_scores():
+    scores = np.loadtxt("./data/scores.txt", dtype=np.float64)
+    return scores
 
-def load_votes():
-    votes = np.loadtxt("./data/votes.txt", dtype=np.float64)
-    return votes
 
 def find_best_features(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, neg_weights=-1, n=1, verbose=1):
     # n: number of features to return
@@ -115,102 +115,26 @@ def find_best_features(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, neg
     images = pos_int_imgs + neg_int_imgs # concatenated image samples
 
     if verbose:
-        print("\ncalculating scores for images ...")
-
-    # 2D numpy.array, each row is a feature with all image scores
-    scores = np.zeros((num_features, num_imgs))
-
-    # visualise learning progress with text signals
-    bar = progressbar.ProgressBar()
-    # pool object to parallelize the execution of a function across multiple input values
-    NUM_PROCESS = cpu_count() * 3 # 8 on T580
-    pool = Pool(processes=NUM_PROCESS)
-
-    # get all scores for each image and each feature (quite time-consuming)
-    for i in bar(range(num_imgs)):
-        scores[:, i] = np.array(list(pool.map(partial(_get_feature_score, image=images[i]), features)))
-
-    '''
-    The partial() is used for partial function application which 'freezes' some portion of a function's arguments and/or keywords
-    resulting in a new object with a simplified signature
-    In the project, (partial(_get_feature_vote, image=images[i]), features), fixed the argument features
-    for i in range(len(features)):
-        for j in range(len(images)):
-            vote[i][j] = _get_feature_vote(features[i], images[j])
-    '''
-
-    # compute error for each feature (weak learner) and update their threshold and polarity
-    
-    if verbose:
-        print("\nupdating feature error and threshold ...")
-    bar = progressbar.ProgressBar() # reset progress bar
-
-    for idx in bar(range(num_features)):
-        feature = features[idx]
-
-        data = np.vstack((scores[idx,:], weights, labels)) # combine data
-        df = pd.DataFrame(data.T, columns=['score','weight','label']) # create data frame
-        df.sort_values(by=['score']) # ascending order
-
-        # Total sums
-        T_pos = df.loc[df['label'] == 1, 'weight'].sum()
-        T_neg = df.loc[df['label'] == 0, 'weight'].sum()
-
-        # find best threshold
-        for threshold in df['score'].tolist():
-            S_pos = df.loc[ (df['label'] == 1) & (df['score'] < threshold), 'weight'].sum()
-            S_neg = df.loc[ (df['label'] == 0) & (df['score'] < threshold), 'weight'].sum()
-            # find polarity
-            error_1 = S_pos + T_neg - S_neg
-            error_2 = S_neg + T_pos - S_pos
-            if error_1 < error_2:
-                min_error = error_1
-                feature.polarity = -1
-            else:
-                feature.polarity = 1
-                min_error = error_2
-            # update error and feature threshold
-            if min_error < feature.error: # initial feature.error is inf
-                feature.error = min_error
-                feature.threshold = threshold
-    
-    best_n_features = sorted(features, key=lambda feature: feature.error)   # sort by error
-
-    return best_n_features[:n]
-
-def find_best_features_2(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, neg_weights=-1, n=1, verbose=1):
-    # n: number of features to return
-    # return: list of festures and their indexes
-    
-    num_pos = len(pos_int_imgs)
-    num_neg = len(neg_int_imgs)
-    num_imgs = num_pos + num_neg
-    num_features = len(features)
-
-    # default weights if unspecified
-    if pos_weights == -1:
-        pos_weights = np.ones(num_pos) * 1. / (2 * num_pos) # w = 1/2m
-    if neg_weights == -1:
-        neg_weights = np.ones(num_neg) * 1. / (2 * num_neg) # w = 1/2l
-    weights = np.hstack((pos_weights, neg_weights)) # concatenated weights of images
-    labels = np.hstack((np.ones(num_pos), np.zeros(num_neg))) # concatenated labels (pos/neg)
-    images = pos_int_imgs + neg_int_imgs # concatenated image samples
-
-    if verbose:
         print("\ncalculating integral images ...")
 
-    # 2D numpy.array, each row is a feature with all image scores
-    scores = np.zeros((num_features, num_imgs))
+    if os.path.exists("./data/scores.txt"):
+        scores = load_scores()
+    else:
+        # 2D numpy.array, each row is a feature with all image scores
+        scores = np.zeros((num_features, num_imgs))
 
-    # visualise learning progress with text signals
-    bar = progressbar.ProgressBar()
-    # pool object to parallelize the execution of a function across multiple input values
-    NUM_PROCESS = cpu_count() * 3 # 8 on T580
-    pool = Pool(processes=NUM_PROCESS)
+        # visualise learning progress with text signals
+        bar = progressbar.ProgressBar()
 
-    # get all scores for each image and each feature (quite time-consuming)
-    for i in bar(range(num_imgs)):
-        scores[:, i] = np.array(list(pool.map(partial(_get_feature_score, image=images[i]), features)))
+        # pool object to parallelize the execution of a function across multiple input values
+        NUM_PROCESS = cpu_count() * 3 # 8 on T580
+        pool = Pool(processes=NUM_PROCESS)
+
+        # get all scores for each image and each feature (quite time-consuming)
+        for i in bar(range(num_imgs)):
+            scores[:, i] = np.array(list(pool.map(partial(_get_feature_score, image=images[i]), features)))
+
+        save_scores(scores)
 
     '''
     The partial() is used for partial function application which 'freezes' some portion of a function's arguments and/or keywords
@@ -221,26 +145,28 @@ def find_best_features_2(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, n
             vote[i][j] = _get_feature_vote(features[i], images[j])
     '''
 
-    # Update scores attribute
+    # Update score attribute in all features
     for idx, feature in enumerate(features):
-        feature.score = scores[idx,:]
+        feature.scores = scores[idx,:]
 
-    # compute error for each feature (weak learner) and update their threshold and polarity
+    # Compute error for each feature (weak learner) and update their threshold and polarity
     if verbose:
         print("\nupdating feature error and threshold ...")
     
-    # print('before f0.error: %f' % features[0].error)
-
-    # update error and threshold of all features (quite time-consuming)
+    # Update error and threshold of all features (quite time-consuming)
     pool = Pool(processes=NUM_PROCESS)
-    best_features = pool.map(partial(_update_feature, weights=weights , labels=labels), features)
+    updated_features = pool.map(partial(_update_feature, weights=weights , labels=labels), features)
+    # TODO: save features in file
+ 
+    # Sort by classification error and retreive indexes
+    idxs = [i[0] for i in sorted(enumerate(updated_features), key=lambda x:x[1].error)] 
     
-    # print('\nafter f0.error: %f' % best_features[0].error)
+    best_features = list()
+    for k in range(n):
+        index = idxs[k]
+        best_features.append(updated_features[index])
 
-    best_features = sorted(best_features, key=lambda feature: feature.error)   # sort by error
-    # TODO: return index of best features
-    return best_features[:n]
-
+    return best_features, idxs[:n]
 
 
 def learn(pos_int_img, neg_int_img, num_classifiers=-1, min_feat_width=1, max_feat_width=-1, min_feat_height=1, max_feat_height=-1, verbose=False):
@@ -290,14 +216,14 @@ def learn(pos_int_img, neg_int_img, num_classifiers=-1, min_feat_width=1, max_fe
     num_classifiers = num_features if num_classifiers == -1 else num_classifiers
 
     if verbose:
-        print("\ncalculating scores for images ...")
+        print("\ncalculating integral images ...")
 
-    
-    if os.path.exists("./data/votes.txt"):
-        votes = load_votes()
+    if os.path.exists("./data/scores.txt"):
+        scores = load_scores()
     else:
-        # 2D numpy.array, each row is an image with all features
-        votes = np.zeros((num_imgs, num_features))
+
+        # 2D numpy.array, each row is a feature with all image scores
+        scores = np.zeros((num_features, num_imgs))
 
         # visualise learning progress with text signals
         bar = progressbar.ProgressBar()
@@ -305,11 +231,11 @@ def learn(pos_int_img, neg_int_img, num_classifiers=-1, min_feat_width=1, max_fe
         NUM_PROCESS = cpu_count() * 3 # 8 on T580
         pool = Pool(processes=NUM_PROCESS)
 
-        # get all votes for each image and each feature (quite time-consuming)
+        # get all scores for each image and each feature (quite time-consuming)
         for i in bar(range(num_imgs)):
-            votes[i, :] = np.array(list(pool.map(partial(_get_feature_vote, image=images[i]), features)))
+            scores[:, i] = np.array(list(pool.map(partial(_get_feature_score, image=images[i]), features)))
 
-        save_votes(votes)
+        save_scores(scores)
 
     '''
     The partial() is used for partial function application which 'freezes' some portion of a function's arguments and/or keywords
@@ -319,6 +245,11 @@ def learn(pos_int_img, neg_int_img, num_classifiers=-1, min_feat_width=1, max_fe
         for j in range(len(images)):
             vote[i][j] = _get_feature_vote(features[i], images[j])
     '''
+
+    # TODO: make the function _get_feature_score to update the feature attribute: updated_feature = _get_feature_score()
+    # Update score attribute in all features. This is a workaround.
+    for idx, feature in enumerate(features):
+        feature.scores = scores[idx,:]
 
     # select classifiers
     classifiers = list() # list of HaarLikeFeature objects
@@ -332,39 +263,43 @@ def learn(pos_int_img, neg_int_img, num_classifiers=-1, min_feat_width=1, max_fe
     # iterate all classifier (for t = 1, ..., T)
     for _ in bar(range(num_classifiers)):
         
-        classification_errors = np.zeros(len(feature_index)) # epsilon_j
+        classification_errors = np.zeros(len(features)) # epsilon_j
 
-        # normalize weights (w_t is a probability distribution) [weights of images]
+        # 1.- normalize weights (w_t is a probability distribution) [weights of images]
         weights *= 1. / np.sum(weights)
 
-        # select the best classifier based on the weighted error
-        for f in range(len(feature_index)):
-            f_idx = feature_index[f]
-            # classifier error = sum of misclassified image weights
-            error = sum(map(lambda img_idx: weights[img_idx] if labels[img_idx] != votes[img_idx, f_idx] else 0, range(num_imgs)))
-            classification_errors[f] = error
+        # 2.- for each feature, j, train a classifier hj (quite time consuming)
+        pool = Pool(processes=NUM_PROCESS)
+        updated_features = pool.map(partial(_update_feature, weights=weights , labels=labels), features)
 
-        # get the best feature (with the smallest error)
+        # compute the feature weighted error
+        for f_idx, feature  in enumerate(updated_features):
+            # f_idx = feature_index[f] #looks like f=f_idx :)
+            # classifier error = sum of misclassified image weights
+            error = sum(map(lambda img_idx: weights[img_idx] if labels[img_idx] != feature.get_vote(img_idx) else 0, range(num_imgs)))
+            classification_errors[f_idx] = error
+        
+        # 3.- get the best feature (with the smallest error)
         min_error_idx = np.argmin(classification_errors) 
-        best_error = classification_errors[min_error_idx]
+        lowest_error = classification_errors[min_error_idx]
         best_feature_idx = feature_index[min_error_idx]
 
         # set feature weight (alpha) and add to classifier list
-        best_feature = features[best_feature_idx]
-        feature_weight = .5 * np.log((1 - best_error) / best_error) # alpha
+        best_feature = updated_features[best_feature_idx]
+        feature_weight = np.log((1 - lowest_error) / lowest_error) # alpha
         best_feature.weight = feature_weight
         classifiers.append(best_feature)
 
-        def new_weights(best_error):
-            return np.sqrt((1 - best_error) / best_error)
+        def new_weights(lowest_error):
+            return lowest_error / (1 - lowest_error) 
 
-        # update image weights (w_(t+1) = w_t * beta_t ^ (1 - e_i)), where e_i = 1 when misclassified
+        # 4.- update image weights (w_(t+1) = w_t * beta_t ^ (1 - e_i)), where e_i = 1 when misclassified
         # map(func_to_apply, list_of_inputs) applies a function to all the items in an input_list
-        weights_map = map(lambda img_idx: weights[img_idx] * new_weights(best_error) if labels[img_idx] != votes[img_idx, best_feature_idx] else weights[img_idx] * 1, range(num_imgs))
+        weights_map = map(lambda img_idx: weights[img_idx] * new_weights(lowest_error) if labels[img_idx] != best_feature.get_vote(img_idx) else weights[img_idx] * 1, range(num_imgs))
         weights = np.array(list(weights_map))
 
         # remove feature (a feature cannot be selected twice)
-        feature_index.remove(best_feature_idx)
+        del features[best_feature_idx]
 
     if verbose:
         print("\nclassified selected ...\nreaching the end of AdaBoost algorithm ...")

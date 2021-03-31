@@ -42,21 +42,29 @@ if __name__ == "__main__":
     max_feature_height = 10
     min_feature_width = 4
     max_feature_width = 10
-
+    '''
+    # Find the top 10 features (before boosting)
     # Create features
     img_height, img_width = pos_train_int_imgs[0].shape
     features = ab._create_features(img_width, img_height, min_feature_width, max_feature_width, min_feature_height, max_feature_height)
     print('Total features: %d' % len(features))
-
-    # Find the top 10 features (before boosting)
-    top10_features = ab.find_best_features_2(features, pos_train_int_imgs, neg_train_int_imgs, n=100)
-
-    # print("\nAdaBoost begins ...")
-    # classifiers = ab.learn(pos_train_int_imgs, neg_train_int_imgs, num_classifier, 
-    #     min_feature_width, max_feature_width, min_feature_height, max_feature_height, verbose=True)
+    top10_features, idxs = ab.find_best_features(features, pos_train_int_imgs, neg_train_int_imgs, n=10)
+    utils.save_features('top10.txt',top10_features)
 
     # generate and save image of classsifiers
-    for i, feature in enumerate(top10_features):
+    saved_features = utils.load_features('top10.txt')
+    for i, feature in enumerate(saved_features):
         img = feature.draw_feature(res=resolution)
         img.save( 'images/'+str(i)+'.png', "PNG")
-        print('[%d]: %f, %f, %f\n' %(i, feature.error, feature.threshold, feature.polarity))
+        # print('[%d]: %f, %f, %f\n' %(idxs[i], feature.error, feature.threshold, feature.polarity))
+    '''
+    print("\nAdaBoost begins ...")
+
+    classifiers = ab.learn(pos_train_int_imgs, neg_train_int_imgs, num_classifier, 
+        min_feature_width, max_feature_width, min_feature_height, max_feature_height, verbose=True)
+
+    utils.save_features('classifiers.txt', classifiers)
+
+    for i, feature in enumerate(classifiers):
+        img = feature.draw_feature(res=resolution)
+        img.save( 'images/'+'classifier'+str(i)+'.png', "PNG")
