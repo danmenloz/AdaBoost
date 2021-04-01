@@ -119,7 +119,7 @@ class HaarLikeFeature(object):
         return vote
 
     
-    def draw_feature(self, img=None, res=None):
+    def draw_feature(self, img=None, res=None, verbose=0):
         # Draw the feature on a given image or on an empty square
         # img:          PIL image
         # resolution:   (width, height) tuple
@@ -130,58 +130,71 @@ class HaarLikeFeature(object):
         
         imgr = ImageDraw.Draw( img )
         neg, pos = 'red', 'green' # fill colors
+        rectangles = list() # list to hold the rectangles info
 
         if self.type == featureType.TWO_VERTICAL:
-            imgr.rectangle( [ self.top_left, 
-                (int(self.top_left[0] + self.width), int(self.top_left[1] + self.height / 2)) ],
-                fill = pos )
-            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + self.height / 2)), 
-                self.bottom_right],
-                fill = neg )
+            rect1 = [ self.top_left, 
+                (int(self.top_left[0] + self.width), int(self.top_left[1] + self.height / 2)),
+                pos ]
+            rect2 = [ (self.top_left[0], int(self.top_left[1] + self.height / 2)), 
+                self.bottom_right,
+                neg ]
+            rectangles.extend([rect1, rect2])
 
         elif self.type == featureType.TWO_HORIZONTAL:
-            imgr.rectangle( [ self.top_left,
-                (int(self.top_left[0] + self.width/2), self.top_left[1] + self.height) ],
-                fill = pos )
-            imgr.rectangle( [ (int(self.top_left[0] + self.width/2), self.top_left[1]), 
-                self.bottom_right],
-                fill = neg )
+            rect1 = [ self.top_left,
+                (int(self.top_left[0] + self.width/2), self.top_left[1] + self.height),
+                pos ]
+            rect2 = [ (int(self.top_left[0] + self.width/2), self.top_left[1]), 
+                self.bottom_right,
+                neg ]
+            rectangles.extend([rect1, rect2])
             
         elif self.type == featureType.THREE_VERTICAL:
-            imgr.rectangle( [ self.top_left,
-                (self.bottom_right[0], int(self.top_left[1] + self.height / 3)) ],
-                fill = pos )
-            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + self.height / 3)), 
-                (self.bottom_right[0], int(self.top_left[1] + 2 * self.height / 3)) ],
-                fill = neg )
-            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + 2 * self.height / 3)), 
-                self.bottom_right ],
-                fill = pos )
+            rect1 = [ self.top_left,
+                (self.bottom_right[0], int(self.top_left[1] + self.height / 3)),
+                pos ]
+            rect2 = [ (self.top_left[0], int(self.top_left[1] + self.height / 3)), 
+                (self.bottom_right[0], int(self.top_left[1] + 2 * self.height / 3)),
+                neg ]
+            rect3 = [ (self.top_left[0], int(self.top_left[1] + 2 * self.height / 3)), 
+                self.bottom_right,
+                pos ]
+            rectangles.extend([rect1, rect2, rect3])
 
         elif self.type == featureType.THREE_HORIZONTAL:
-            imgr.rectangle( [ self.top_left,
-                (self.bottom_right[0], int(self.top_left[1] + self.height / 3)) ],
-                fill = pos )
-            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + self.height / 3)),
-                (self.bottom_right[0], int(self.top_left[1] + 2 * self.height / 3)) ],
-                fill = neg )
-            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + 2 * self.height / 3)), 
-                self.bottom_right ],
-                fill = pos )
+            rect1 = [ self.top_left,
+                (self.bottom_right[0], int(self.top_left[1] + self.height / 3)),
+                pos ]
+            rect2 = [ (self.top_left[0], int(self.top_left[1] + self.height / 3)),
+                (self.bottom_right[0], int(self.top_left[1] + 2 * self.height / 3)),
+                neg ]
+            rect3 = [ (self.top_left[0], int(self.top_left[1] + 2 * self.height / 3)), 
+                self.bottom_right,
+                pos ]
+            rectangles.extend([rect1, rect2, rect3])
 
         elif self.type == featureType.FOUR:
-            imgr.rectangle( [ self.top_left,
-                (int(self.top_left[0] + self.width / 2), int(self.top_left[1] + self.height / 2)) ],
-                fill = pos )
-            imgr.rectangle( [ (int(self.top_left[0] + self.width / 2), self.top_left[1]),
-                (self.bottom_right[0], int(self.top_left[1] + self.height / 2)) ],
-                fill = neg )
-            imgr.rectangle( [ (self.top_left[0], int(self.top_left[1] + self.height / 2)),
-                (int(self.top_left[0] + self.width / 2), self.bottom_right[1]) ],
-                fill = neg )
-            imgr.rectangle( [ (int(self.top_left[0] + self.width / 2),
-                int(self.top_left[1] + self.height / 2)), self.bottom_right ],
-                fill = pos )
+            rect1 = [ self.top_left,
+                (int(self.top_left[0] + self.width / 2), int(self.top_left[1] + self.height / 2)),
+                pos ]
+            rect2 = [ (int(self.top_left[0] + self.width / 2), self.top_left[1]),
+                (self.bottom_right[0], int(self.top_left[1] + self.height / 2)),
+                neg ]
+            rect3 = [ (self.top_left[0], int(self.top_left[1] + self.height / 2)),
+                (int(self.top_left[0] + self.width / 2), self.bottom_right[1]),
+                neg ]
+            rect4 = [ (int(self.top_left[0] + self.width / 2),
+                int(self.top_left[1] + self.height / 2)), self.bottom_right,
+                pos ]
+            rectangles.extend([rect1, rect2, rect3, rect4])
+            
+        for rect in rectangles:
+            p0, p1, color = rect # extract info
+            p1 = (p1[0]-1 ,p1[1]-1) # ignore border 
+            imgr.rectangle( [p0, p1], fill = color)
+            if verbose:
+                print('p0: {}  p1:{}  fill:{}'.format(p0,p1,color))
         
         return img
         

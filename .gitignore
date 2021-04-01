@@ -3,7 +3,7 @@ actors/
 .vscode/
 **/.DS_Store
 Dataset/
-data/
+# data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

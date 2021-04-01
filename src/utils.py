@@ -162,6 +162,22 @@ def create_datasets(train_size, val_size, test_size, resolution, verbose=1):
 
 
 
+def read_dataset_file(filename):
+    actors = list()
+    with open(filename, newline='') as dataset:
+        dataset_reader = csv.DictReader(dataset, delimiter='\t')
+        for actor in dataset_reader:
+            actors.append(actor)
+    return actors
+
+
+
+def load_datasets():
+    files = ['data/train/train.txt', 'data/valid/valid.txt', 'data/test/test.txt']
+    return map(read_dataset_file, files)
+
+
+
 def read_dataset(dataset):
     # dataset is a list of dictionaries: dataset = [{face: image: 1: 0:},...]
     # return list of positive and negative images

@@ -114,6 +114,8 @@ def find_best_features(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, neg
     labels = np.hstack((np.ones(num_pos), np.zeros(num_neg))) # concatenated labels (pos/neg)
     images = pos_int_imgs + neg_int_imgs # concatenated image samples
 
+    NUM_PROCESS = cpu_count() * 3 # 8 on T580
+
     if verbose:
         print("\ncalculating integral images ...")
 
@@ -127,7 +129,6 @@ def find_best_features(features, pos_int_imgs, neg_int_imgs, pos_weights=-1, neg
         bar = progressbar.ProgressBar()
 
         # pool object to parallelize the execution of a function across multiple input values
-        NUM_PROCESS = cpu_count() * 3 # 8 on T580
         pool = Pool(processes=NUM_PROCESS)
 
         # get all scores for each image and each feature (quite time-consuming)
@@ -201,6 +202,8 @@ def learn(pos_int_img, neg_int_img, num_classifiers=-1, min_feat_width=1, max_fe
     # training images list
     images = pos_int_img + neg_int_img # concatenated image samples
 
+    NUM_PROCESS = cpu_count() * 3 # 8 on T580
+
     if verbose:
         print("\ncreating haar-like features ...")
     # all the possible features must be quite time consuming
@@ -228,7 +231,6 @@ def learn(pos_int_img, neg_int_img, num_classifiers=-1, min_feat_width=1, max_fe
         # visualise learning progress with text signals
         bar = progressbar.ProgressBar()
         # pool object to parallelize the execution of a function across multiple input values
-        NUM_PROCESS = cpu_count() * 3 # 8 on T580
         pool = Pool(processes=NUM_PROCESS)
 
         # get all scores for each image and each feature (quite time-consuming)
@@ -298,10 +300,21 @@ def learn(pos_int_img, neg_int_img, num_classifiers=-1, min_feat_width=1, max_fe
         weights_map = map(lambda img_idx: weights[img_idx] * new_weights(lowest_error) if labels[img_idx] != best_feature.get_vote(img_idx) else weights[img_idx] * 1, range(num_imgs))
         weights = np.array(list(weights_map))
 
+        # print feature info
+        print('\nbest: {}, {}, {}, {}, {}, {}, {}, {} \n'.format(
+            best_feature.type.value,
+            best_feature.top_left,
+            best_feature.width,
+            best_feature.height,
+            best_feature.error,
+            best_feature.threshold,
+            best_feature.polarity,
+            best_feature.weight))
+
         # remove feature (a feature cannot be selected twice)
         del features[best_feature_idx]
 
     if verbose:
-        print("\nclassified selected ...\nreaching the end of AdaBoost algorithm ...")
+        print("\nclassifiers selected ...\nreaching the end of AdaBoost algorithm ...")
 
     return classifiers
