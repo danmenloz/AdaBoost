@@ -107,15 +107,20 @@ class HaarLikeFeature(object):
         score = white - grey
         return score
 
-    def get_vote(self, img_idx):
+    def get_vote(self, img_idx=None, int_img=None):
         # Get the vote of this feature for a given integral image index
         # note h_j(x) = 0 otherwise
-        # score = self.calc_score(int_img) # scores have already been computed and stored in .scores attribute
-        score = self.scores[img_idx]
+        if int_img is not None:
+            score = self.calc_score(int_img) 
+        else:
+            # scores have already been computed and stored in .scores attribute
+            score = self.scores[img_idx]
+
         if self.polarity == 1:
             vote = 1 if score < self.threshold else 0
         else: # self.polarity = -1
             vote = 1 if score > self.threshold else 0
+            
         return vote
 
     
@@ -124,9 +129,11 @@ class HaarLikeFeature(object):
         # img:          PIL image
         # resolution:   (width, height) tuple
         if img is None:
-            img = Image.new("RGB", res)
+            img = Image.new("RGBA", res, (255, 0, 0, 0))
+            # the 4th value in the color parameter (in this example (255, 0, 0, 0)) is set to 0, 
+            # the image will be completely transparent - this is the value of the alpha channel
         else:
-            img = img.convert('RGB')
+            img = img.convert('RGBA')
         
         imgr = ImageDraw.Draw( img )
         neg, pos = 'red', 'green' # fill colors

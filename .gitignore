@@ -3,7 +3,8 @@ actors/
 .vscode/
 **/.DS_Store
 Dataset/
-# data/
+# scores.txt is >100 MB
+data/scores.txt 
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

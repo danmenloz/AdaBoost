@@ -1,11 +1,15 @@
 import csv
 import random
 import shutil
+import os
 import numpy as np
 from pathlib import Path
 from PIL import Image
 from random import randrange
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+from sklearn import metrics
+import seaborn as sns
 
 from src.haar_features import HaarLikeFeature as haar
 from src.haar_features import featureType
@@ -15,6 +19,7 @@ path_actors_faces = './actors/faces/'
 path_actors_images = './actors/images/'
 path_faces_file = './actors/faces.txt'
 path_save_features = './data/'
+path_save_dir = './images/'
 
 
 
@@ -235,3 +240,78 @@ def load_features(filename):
         eval(f['weight'])) for f in read_features]
 
     return created_features
+
+
+def plot_features(features, name, res, combined=False):
+    if combined: # all featuers on one image
+        img = Image.new("RGBA", res, (255, 0, 0, 0))
+        for feature in features:
+            layer = feature.draw_feature(res=res)
+            img.paste(layer, (0,0), layer)
+        img.save( os.path.join(path_save_dir, name+'.png'), "PNG")
+    else:
+        for i, feature in enumerate(features):
+            img = feature.draw_feature(res=res)
+            img.save( os.path.join(path_save_dir, name+str(i)+'.png'), "PNG")
+
+
+def ensemble_vote(int_img, classifiers, continous=False):
+    if continous:
+        # compute the vote for the final strong classifier in continous form [0->1]
+        vote =  sum([f.weight * f.get_vote(int_img=int_img) for f in classifiers])
+                # 0.5*sum([f.weight for f in classifiers]) 
+    else:
+        # compute the vote for the final strong classifier in discrete form [0,1]
+        vote = 1 if sum([f.weight * f.get_vote(int_img=int_img) for f in classifiers]) \
+                    >= 0.5*sum([f.weight for f in classifiers]) else 0
+    return vote
+
+
+def test_classifiers(pos_int_imgs, neg_int_imgs, classifiers, continous=False, type='strong'):
+    # type: 'weak' or 'strong'
+    imgs = pos_int_imgs + neg_int_imgs
+
+    if type=='strong':
+        score = [ensemble_vote(img,classifiers,continous) for img in imgs]
+    elif type=='weak':
+        score = [classifiers.get_vote(int_img=img) for img in imgs]
+    
+    return score
+
+
+def plot_roc(pos_int_imgs, neg_int_imgs, classifiers, name):
+    score = test_classifiers(pos_int_imgs, neg_int_imgs, classifiers, continous=True)
+    labels = [1.0]*len(pos_int_imgs) + [0.0]*len(neg_int_imgs)
+
+    fpr, tpr, threshold = metrics.roc_curve(labels, score)
+    roc_auc = metrics.auc(fpr, tpr)
+
+    plt.title('ROC:' + name)
+    plt.plot(fpr, tpr, 'b', label='AUC = {:0.2f}'.format(roc_auc))
+    plt.legend(loc='lower right')
+    plt.plot([0, 1], [0, 1], 'r--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.savefig(os.path.join(path_save_dir, name+'.jpg'))
+    plt.close()
+
+
+def plot_confusion_matrix(score, num_pos, num_neg, name):
+    labels = [1.0]*num_pos + [0.0]*num_neg
+    confM = metrics.confusion_matrix(labels, score)
+    fig, ax = plt.subplots(figsize=(7,4)) 
+    axis_labels = ["non-face","face"]
+    sns.heatmap(confM, annot=True,cmap="Greens",fmt='g', xticklabels=axis_labels, yticklabels=axis_labels,ax=ax)
+    plt.title('Confusion Matrix')
+    plt.ylabel('True')
+    plt.xlabel('Predicted')
+    plt.savefig(os.path.join(path_save_dir, name+'.jpg'))
+    plt.close()
+
+
+def build_report(score, num_pos, num_neg):
+    labels = [1.0]*num_pos + [0.0]*num_neg
+    print('\nClassification Report')
+    print(metrics.classification_report(labels, score))

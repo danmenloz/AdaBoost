@@ -33,8 +33,8 @@ if __name__ == "__main__":
     # Integral images
     pos_train_int_imgs = [ integral.IntegralImage(img).int_img for img in pos_train_imgs ]
     neg_train_int_imgs = [ integral.IntegralImage(img).int_img for img in neg_train_imgs ]
-    pos_valid_int_imgs = [ integral.IntegralImage(img).int_img for img in pos_valid_imgs ]
-    neg_valid_int_imgs = [ integral.IntegralImage(img).int_img for img in neg_valid_imgs ]
+    pos_test_int_imgs = [ integral.IntegralImage(img).int_img for img in pos_test_imgs ]
+    neg_test_int_imgs = [ integral.IntegralImage(img).int_img for img in neg_test_imgs ]
 
     # parameters (do not change)
     num_classifier = 10
@@ -43,28 +43,55 @@ if __name__ == "__main__":
     min_feature_width = 2
     max_feature_width = 15
     
-    # Find the top 10 features (before boosting)
+    print('\nFinding the top 10 features (before boosting) ...')
+
     # Create features
-    # img_height, img_width = pos_train_int_imgs[0].shape
-    # features = ab._create_features(img_width, img_height, min_feature_width, max_feature_width, min_feature_height, max_feature_height)
-    # print('Total features: %d' % len(features))
+    img_height, img_width = pos_train_int_imgs[0].shape
+    features = ab._create_features(img_width, img_height, min_feature_width, max_feature_width, min_feature_height, max_feature_height)
+    print('Total features: %d' % len(features))
+
+    ### Next line executes algorithm to train and find the best 10 features but
+    ### it is quite time consuming... it took 3 hrs to train all features
+    ### load the found features instead
     # top10_features, idxs = ab.find_best_features(features, pos_train_int_imgs, neg_train_int_imgs, n=10)
     # utils.save_features('top10.txt',top10_features)
 
-    # # generate and save image of classsifiers
-    # saved_features = utils.load_features('top10.txt')
-    # for i, feature in enumerate(saved_features):
-    #     img = feature.draw_feature(res=resolution)
-    #     img.save( 'images/'+str(i)+'.png', "PNG")
-        # print('[%d]: %f, %f, %f\n' %(idxs[i], feature.error, feature.threshold, feature.polarity))
-    
+    top10_features = utils.load_features('top10.txt')
+    utils.plot_features(top10_features,'feature_', resolution)
+    utils.plot_features(top10_features,'features_mix', resolution, combined=True)
+    best_feature = top10_features[0]
+
+    print('\nBest Feature Training Results:')
+    score = utils.test_classifiers(pos_train_int_imgs, neg_train_int_imgs, best_feature, type='weak')
+    utils.plot_confusion_matrix(score, len(pos_train_int_imgs), len(neg_train_int_imgs), 'best_train_confmatx')
+    utils.build_report(score, len(pos_train_int_imgs), len(neg_train_int_imgs))
+
+    print('\nBest Feature Test Results:')
+    score = utils.test_classifiers(pos_test_int_imgs, neg_test_int_imgs, best_feature, type='weak')
+    utils.plot_confusion_matrix(score, len(pos_test_int_imgs), len(neg_test_int_imgs), 'best_test_confmatx')
+    utils.build_report(score, len(pos_test_int_imgs), len(neg_test_int_imgs))
+
+
     print("\nAdaBoost begins ...")
 
-    classifiers = ab.learn(pos_train_int_imgs, neg_train_int_imgs, num_classifier, 
-        min_feature_width, max_feature_width, min_feature_height, max_feature_height, verbose=True)
+    ### Next line executes the AdaBoost algorithm but it is quite time consuming... 
+    ### it took 1 day 8hrs to find 10 clasifiers! Load the found classifiers instead
+    # classifiers = ab.learn(pos_train_int_imgs, neg_train_int_imgs, num_classifier, 
+    #     min_feature_width, max_feature_width, min_feature_height, max_feature_height, verbose=True)
+    # utils.save_features('classifiers.txt', classifiers)
 
-    utils.save_features('classifiers.txt', classifiers)
+    classifiers = utils.load_features('classifiers.txt')
+    utils.plot_features(classifiers, 'classifier_', resolution)
+    utils.plot_features(classifiers, 'classifiers_mix', resolution,combined=True)
 
-    for i, feature in enumerate(classifiers):
-        img = feature.draw_feature(res=resolution)
-        img.save( 'images/'+'classifier'+str(i)+'.png', "PNG")
+    print('\nAdaBoost Training Results:')
+    score = utils.test_classifiers(pos_train_int_imgs, neg_train_int_imgs, classifiers)
+    utils.plot_confusion_matrix(score, len(pos_train_int_imgs), len(neg_train_int_imgs), 'AdaBoost_train_confmatx')
+    utils.plot_roc(pos_train_int_imgs, neg_train_int_imgs, classifiers, 'AdaBoost_train_roc')
+    utils.build_report(score, len(pos_train_int_imgs), len(neg_train_int_imgs))
+
+    print('\nAdaBoost Test Results:')
+    score = utils.test_classifiers(pos_test_int_imgs, neg_test_int_imgs, classifiers)
+    utils.plot_confusion_matrix(score, len(pos_test_int_imgs), len(neg_test_int_imgs), 'AdaBoost_test_confmatx')
+    utils.plot_roc(pos_test_int_imgs, neg_test_int_imgs, classifiers, 'AdaBoost_test_roc')
+    utils.build_report(score, len(pos_test_int_imgs), len(neg_test_int_imgs))
