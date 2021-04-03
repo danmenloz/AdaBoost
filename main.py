@@ -15,6 +15,9 @@ if __name__ == "__main__":
     # run first 'python ./faceScrub download.py' to generate the actors folder
     
     # Create datasets with equal number of pos and neg classes
+    ### The next line creates new datasets with randomly selected images from the actors/ folder
+    ### Uncomment to create new datasets or alternatively read the existing datasets
+    # train_set, valid_set, test_set = utils.create_datasets(train_size,val_size,test_size,resolution)
     train_set, valid_set, test_set = utils.load_datasets() # read txt files
     # set = [{face: image: 1: 0:},...]
 
@@ -83,7 +86,7 @@ if __name__ == "__main__":
 
     classifiers = utils.load_features('classifiers.txt')
     utils.plot_features(classifiers, 'classifier_', resolution)
-    utils.plot_features(classifiers, 'classifiers_mix', resolution,combined=True)
+    utils.plot_features(classifiers, 'classifiers_mix', resolution,combined=True, face=True)
 
     print('\nAdaBoost Training Results:')
     score = utils.test_classifiers(pos_train_int_imgs, neg_train_int_imgs, classifiers)

@@ -247,8 +247,8 @@ def plot_features(features, name, res, combined=False, face=False):
     if combined: # all featuers on one image
         img = Image.new("RGBA", res, (255, 0, 0, 0))
         if face:
-            face_img = Image.open(path_face_img).convert('RGB')
-            img.paste(face_img, (0,0), face_img)
+            img = Image.open(path_face_img).convert('RGB')
+            # img.paste(face_img, (0,0), face_img)
         for feature in features:
             layer = feature.draw_feature(res=res)
             img.paste(layer, (0,0), layer)
