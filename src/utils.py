@@ -20,6 +20,7 @@ path_actors_images = './actors/images/'
 path_faces_file = './actors/faces.txt'
 path_save_features = './data/'
 path_save_dir = './images/'
+path_face_img = 'data/test/1/Ben_Affleck_8576_4744.png'
 
 
 
@@ -242,9 +243,12 @@ def load_features(filename):
     return created_features
 
 
-def plot_features(features, name, res, combined=False):
+def plot_features(features, name, res, combined=False, face=False):
     if combined: # all featuers on one image
         img = Image.new("RGBA", res, (255, 0, 0, 0))
+        if face:
+            face_img = Image.open(path_face_img).convert('RGB')
+            img.paste(face_img, (0,0), face_img)
         for feature in features:
             layer = feature.draw_feature(res=res)
             img.paste(layer, (0,0), layer)
@@ -252,7 +256,12 @@ def plot_features(features, name, res, combined=False):
     else:
         for i, feature in enumerate(features):
             img = feature.draw_feature(res=res)
-            img.save( os.path.join(path_save_dir, name+str(i)+'.png'), "PNG")
+            if face:
+                face_img = Image.open(path_face_img).convert('RGB')
+                face_img.paste(img, (0,0), img)
+                face_img.save( os.path.join(path_save_dir, name+str(i)+'.png'), "PNG")
+            else:
+                img.save( os.path.join(path_save_dir, name+str(i)+'.png'), "PNG")
 
 
 def ensemble_vote(int_img, classifiers, continous=False):

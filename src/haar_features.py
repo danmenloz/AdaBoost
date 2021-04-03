@@ -136,7 +136,8 @@ class HaarLikeFeature(object):
             img = img.convert('RGBA')
         
         imgr = ImageDraw.Draw( img )
-        neg, pos = 'red', 'green' # fill colors
+        neg = (255, 0, 0, 127) # red
+        pos = (0, 255, 0, 127)
         rectangles = list() # list to hold the rectangles info
 
         if self.type == featureType.TWO_VERTICAL:

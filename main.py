@@ -59,6 +59,7 @@ if __name__ == "__main__":
     top10_features = utils.load_features('top10.txt')
     utils.plot_features(top10_features,'feature_', resolution)
     utils.plot_features(top10_features,'features_mix', resolution, combined=True)
+    utils.plot_features(top10_features,'feature_face_', resolution, face=True)
     best_feature = top10_features[0]
 
     print('\nBest Feature Training Results:')
